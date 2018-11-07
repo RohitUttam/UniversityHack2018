@@ -1,0 +1,56 @@
+1. Resumen de trabajo 
+   La capacidad que tienen los bancos para conseguir nuevos clientes y las areas del mercado en las que se enfocan vienen en gran medidad determinadas por las caracter�sticas de sus clientes.
+   Siendo el poder adquisitivo, el factor determinante en la adquisici�n de unos productos u otros, es l�gico que la estimaci�n de esta variable sea una prioridad cualquier negocio.
+   En este documento se presentan las variables recogidas por una plataforma CRM (Salesforce), su analisis y el posterior desarrollo de un algoritmo de estimaci�n del poder adquisitivo de los clientes.
+
+2,3. Analisis de las variables.
+   Las variables a las que se ha tenido acceso son:
+   - Sociodemogr�ficas [ Socio_Demo_01-05 ]
+   - Importe de consumos habituales [Imp_Cons_01-17]
+   - Importe de saldos de distintos productos financieros [Imp_Sal_01-21]
+   - La tenencia de los distintos productos financieros  [Ind_Prod_01-24]
+   - N�mero de operaciones de los distintos productos financieros [Num_Oper_01-20]
+   - El poder adquisitivo [Poder_Adquisitivo]
+
+   En primer lugar, dada la variedad del poder adquisitivo de los clientes se ha llevado a cabo un analisis de clustering, aplicando el algortimo de K-means.
+   Se ha llegado a la conclusi�n de que el n�mero de clusters m�s representativo es 3 y por tanto en todo el analisis posterior se ha tenido en cuenta 3 tipos de mercado atendiendo al poder adquisitivo de los clientes:
+   Mercado 1 -  Clientes cuyo poder adquisitivo es menor a 94000
+   Mercado 2 -  Clientes cuyo poder adquisitivo est� entre 94000 y 675000
+   Mercado 3 -  Clientes cuyo poder adquisitivo es  mayor a 675000
+
+   En segundo lugar se han analizado los importes de consumo habituales. Se han hallado las correlaciones de las variables con el poder adquisitivo y entre s� mismas.
+   Se ha llegado a la conclusi�n de que las correlaciones m�s fuertes con el poder adquisitivo se dan en las variables Imp_Cons_02, Imp_Cons_06, Imp_Cons_09,Imp_Cons_12 y la suma de todas las Imp_Cons.
+   Tras un analisis m�s exhaustivo, se ha observado que las correlaciones entre las parejas Imp_Cons_06-Imp_Cons_12 y las Imp_Cons_02 e Imp_Cons_09, son altas.
+   Por este motivo, se ha tomado la decisi�n de realizar un analisis PCA (Principal Component Analysis) entre las parejas reduciendo las dimensiones del modelo final.
+   
+   Tras esto, se han analizado los importes de los saldos de los distintos productos financieros. Se han hallado las correlaciones entre estas variables y el n�mero de operaciones de los distintos productos financieros, as� como con el Poder Adquisitivo.
+   Se ha llegado a la conclusi�n de que el Imp_Sal_15 se relacionaba directamente con el Num_Oper_02,07,08 y 18, a la vez que entre dichos Num_Oper exist�an relaciones fuertes, del orden de una correlaci�n cercana a la unidad en algunos casos.
+   Ocurre lo mismo para las variables Imp_Sal_16 y 17 con otros Num_Oper, pero debido a la baja correlaci�n de estos saldos con el Poder_Adquisitivo, se decidi� no tenerlas en cuenta.
+   En cambio, focalizando el an�lisis en el Mercado 3, los saldos no nulos corresponden a Imp_Sal_08, Imp_Sal_09, Imp_Sal_19 y Imp_Sal_21, cuya suma ofrece una correlaci�n del 0.5 con el Poder Adquisitivo.
+   
+   A continuaci�n, se han analizado la tenencia de los distintos productos financieros. En primer lugar se realiz� un an�lisis de cada producto en cada uno de los tres mercados, calulando el porcentaje de personas de cada mercado que ten�a o no el producto.
+   Se ha llegado a la conclusi�n de que Ind_Prod_01, Ind_Prod_04, Ind_Prod_13, Ind_Prod_15, Ind_Prod_17, Ind_Prod_22 y Ind_Prod_23 son productos que la gran parte del Mercado 3 posee, pero no es as� en el Mercado 1, por lo que marcar� la diferencia entre ambos mercados.
+   En cuanto a Ind_Prod_02, Ind_Prod_10, Ind_Prod_11, Ind_Prod_14, Ind_Prod_16 y Ind_Prod_21, son productos que el Mercado 2 posee normalmente, pero no tanto el Mercado 3.
+   Por ello se han agrupado estas variables en dos indices, el primero corresponde a la cantidad de productos de la primera secci�n (los del Mercado 3) y el segundo a la cantidad de productos del segundo conjunto.
+   Mediante una visualizaci�n de estos indices frente al Poder_Adquisitivo, se ha comprobado que cuanto mayor es el numero de productos contratados, mayor es el Poder Adquisitivo del cliente. 
+   Adem�s, se ha visto que ambos indices se podian agrupar, de manera que las personas con mayor poder adquisitivo se encuentran en dos situaciones:
+   - Bien han adquirido muchos productos ricos
+   - O bien, han adquirido mucho producto medio y alg�n rico.
+   Con este hallazgo,a aquellos clientes del Mercado 3 que s�lo hab�an consumido 1 o 2 productos ricos se les rebaj� el �ndice.
+   Finalmente se ha obtenido un �ndice de 0 a 8, que se relaciona directamente con el Poder_Adquisitivo.
+   
+   En cuanto a las variables socio demogr�ficas, no se ha podido obtener relaciones con el poder adquisitivo excepto en Socio_Demo_02, que ofrece una divisi�n en dos categor�as. El grupo 1 presenta un Poder_Adquisitivo mayor al 2.
+   Mediante un an�lisis de la varianza (ANOVA) se ha comprobado que la diferencia entre ambos grupos era significativa (p-valor<0.05).
+   
+   El dataset de train modificado consiste en 5 variables explicativas:
+   - Imp_Cons_06: (Num�rica continua)
+   - Socio_Demo_02: (Num�rica discreta)
+   - indice2: �ndice de tenencia de productos que aportan un mayor poder adquisitivo(Num�rica discreta)
+   - Sal_Total: Suma del importe de saldos que aportan un mayor poder adquisitivo(Num�rica continua)
+   - Cons_Total: Suma de importes de consumo(Num�rica continua)
+   
+4. Justificaci�n del modelo.
+   Random Forest es un algoritmo sencillo y a la vez potente para realizar regresi�n con diferentes tipos de variable (continuas y discretas).
+   Tambi�n permite la optimizaci�n de dos par�metros, n�mero de �rboles y n�mero de caracter�sticas exploradas en cada split, haciendo uso del Cross-Validation dataset.
+   Finalmente se escogi� aquel modelo cuyos par�metros ofrecian menor MSE (Mean Squared Error) ne el cross-validation, y se evalu� el comportamiento a trav�s del Mean Absolute Error (~5000) y el coeficiente R^2 (0.25)
+   
